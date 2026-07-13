@@ -1,0 +1,10 @@
+{
+  "name": "gateway-core",
+  "description": "The Gateway Corp core method for AI-enabled development: one task per session, size-routed workflows, persona-aware project bootstrap, subagent orchestration, verified completion.",
+  "author": {
+    "name": "The Gateway Corp",
+    "email": "aitools@thegatewaycorp.co.in"
+  },
+  "skills": ["./skills/"],
+  "commands": ["./commands/"]
+}

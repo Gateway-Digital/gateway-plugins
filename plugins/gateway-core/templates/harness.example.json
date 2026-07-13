@@ -1,0 +1,25 @@
+{
+  "$comment": "Example .claude/harness.json - the manifest org-init writes into each repo. It records what the harness contains and why, making setups auditable and refreshable.",
+  "harnessVersion": 2,
+  "initialized": "2026-07-13",
+  "projectType": "brownfield",
+  "stacks": ["python", "react"],
+  "trackedFiles": 2340,
+  "slots": {
+    "method": { "id": "gateway-core", "version": "marketplace-tracked" },
+    "memory": { "id": "claude-mem", "version": "13.10.2", "config": "native auto-memory off, CONTEXT_SESSIONS=5" },
+    "code-graph": { "id": "codegraph", "version": "1.4.1", "reason": "code-heavy corpus; Django route tracing" },
+    "search": { "id": "mgrep", "reason": "org default" },
+    "stack-conventions": [
+      { "id": "ecc:django-reviewer", "source": "affaan-m/ECC@<commit>", "via": "find-org-skills proposal PR #12" }
+    ],
+    "editing-precision": null
+  },
+  "recheck": [
+    "serena: revisit if symbol-level edit churn becomes a bottleneck",
+    "codegraph vs graphify: re-evaluate if the docs/SQL corpus grows"
+  ],
+  "history": [
+    { "date": "2026-07-13", "change": "initial harness", "by": "org-init" }
+  ]
+}

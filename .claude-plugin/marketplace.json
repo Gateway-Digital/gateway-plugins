@@ -1,0 +1,19 @@
+{
+  "name": "gateway-tools",
+  "owner": {
+    "name": "The Gateway Corp",
+    "email": "aitools@thegatewaycorp.co.in"
+  },
+  "metadata": {
+    "description": "The Gateway Corp's vetted Claude Code marketplace: the core method plugin plus the governed tool catalog. Stack-specific skills are cherry-picked into repos via the catalog, not shipped as always-on plugins.",
+    "version": "2.0.0"
+  },
+  "plugins": [
+    {
+      "name": "gateway-core",
+      "source": "./plugins/gateway-core",
+      "description": "Org-wide super harness: size-routed workflows, persona-aware project interview, per-project harness bootstrap (claude-mem + codegraph/graphify + mgrep by default), subagent orchestration with review gates, systematic debugging, governed skill discovery, and verified completion.",
+      "category": "workflow"
+    }
+  ]
+}

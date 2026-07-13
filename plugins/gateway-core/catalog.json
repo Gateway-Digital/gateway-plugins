@@ -1,0 +1,174 @@
+{
+  "$comment": "The Gateway Corp vetted tool catalog. At most ONE approved entry per slot per repo. Entries with defaultInstall:true are installed by org-init in every repo unless skipWhen matches or the user opts out. Changes land via PR reviewed by the DRI. Versions are pinned - re-vet on major bumps.",
+  "version": 2,
+  "updated": "2026-07-13",
+  "slots": {
+    "memory": "Cross-session memory. Default occupant: claude-mem (installed at init). Exactly one memory system per repo - native auto-memory is disabled when claude-mem is active.",
+    "code-graph": "Persistent structural index of the codebase. Default occupant: codegraph; graphify instead for docs/SQL/mixed-media corpora. Never both.",
+    "search": "Semantic code + web search. Default occupant: mgrep (replaces grep/rg in workflows; --web covers web search).",
+    "editing-precision": "Symbol-level navigation and surgical edits via language servers. Default: none (opt-in).",
+    "stack-conventions": "Per-stack rules, reviewers, and conventions. Filled per repo by cherry-picking from vetted libraries (ECC) via find-org-skills - not by always-on stack plugins.",
+    "method": "Workflow discipline. Always occupied by gateway-core; no alternatives.",
+    "library": "Vetted cherry-pick sources. Not installable as bundles."
+  },
+  "entries": [
+    {
+      "id": "claude-mem",
+      "status": "approved",
+      "slot": "memory",
+      "kind": "plugin",
+      "defaultInstall": true,
+      "skipWhen": "Machine cannot run background workers (no Bun/uv) or repo handles regulated data without <private> tagging discipline",
+      "summary": "Exhaustive session memory: lifecycle hooks capture every tool call, background worker compresses into searchable SQLite + vector store, digest injected at SessionStart. The org's default memory layer.",
+      "source": {
+        "type": "marketplace",
+        "marketplace": "thedotmack/claude-mem",
+        "plugin": "claude-mem",
+        "version": "13.10.2",
+        "repo": "https://github.com/thedotmack/claude-mem"
+      },
+      "license": "Apache-2.0",
+      "conflicts": ["native-auto-memory"],
+      "install": [
+        "npx claude-mem@13.10.2 install"
+      ],
+      "config": {
+        "required": "Disable native auto-memory (autoMemoryEnabled: false) - running both causes documented drift and prompt bloat. Set CONTEXT_SESSIONS=5 to cap startup injection.",
+        "note": "Compression consumes model usage; SessionStart injection is a per-session token tax. gateway-core deliberately ships no memory hooks of its own - claude-mem owns this slot."
+      },
+      "cautions": "Fast-moving single-lead project - pin, re-vet on majors. Needs Bun + uv + a background worker; use <private> tags around sensitive content."
+    },
+    {
+      "id": "codegraph",
+      "status": "approved",
+      "slot": "code-graph",
+      "kind": "mcp",
+      "defaultInstall": true,
+      "skipWhen": "graphify selected instead (docs/SQL/mixed-media-heavy corpus), or repo is tiny throwaway work",
+      "summary": "Tree-sitter AST -> SQLite call/import graph per repo. One listed MCP tool (codegraph_explore), near-zero context overhead. Repo-median benchmarks: ~58% fewer tool calls, 23-64% fewer tokens vs native Explore. Value grows with repo size; the incremental watcher keeps a graph started early cheap to maintain.",
+      "source": {
+        "type": "npm",
+        "package": "@colbymchenry/codegraph",
+        "version": "1.4.1",
+        "repo": "https://github.com/colbymchenry/codegraph"
+      },
+      "license": "MIT",
+      "conflicts": ["graphify"],
+      "install": [
+        "npm install -g @colbymchenry/codegraph@1.4.1",
+        "codegraph install",
+        "codegraph init"
+      ],
+      "config": {
+        "gitignore": [".codegraph/"]
+      },
+      "cautions": "Single maintainer; AST-only (no runtime truth); npm path only, never curl|sh; on very high-churn monorepos sync cost can eat savings - flag in harness.json if so."
+    },
+    {
+      "id": "graphify",
+      "status": "approved",
+      "slot": "code-graph",
+      "kind": "skill+mcp+hook",
+      "defaultInstall": false,
+      "summary": "Knowledge graph over mixed corpora - code plus SQL, docs, PDFs, diagrams - with a PreToolUse hook steering Claude to consult the graph before searching files. Choose over codegraph when the corpus is genuinely mixed-media.",
+      "source": {
+        "type": "pypi",
+        "package": "graphifyy",
+        "version": "0.9.13",
+        "repo": "https://github.com/Graphify-Labs/graphify"
+      },
+      "license": "MIT",
+      "conflicts": ["codegraph"],
+      "install": [
+        "uv tool install graphifyy==0.9.13",
+        "graphify install",
+        "then run /graphify . once in Claude Code"
+      ],
+      "config": {
+        "gitignore": ["graphify-out/"],
+        "refreshPolicy": "Run the bundled incremental update flow after significant changes; a stale graph misdirects the agent."
+      },
+      "cautions": "PyPI package is graphifyy (double y). Pre-1.0, near-daily releases. Code-only builds are free/local; doc extraction costs tokens at build time. Token-savings claims (49-71x) are vendor-reported."
+    },
+    {
+      "id": "mgrep",
+      "status": "approved",
+      "slot": "search",
+      "kind": "plugin",
+      "defaultInstall": true,
+      "summary": "Semantic search by mixedbread-ai replacing grep/rg: `mgrep \"query\"` for local code search, `mgrep --web \"query\"` for web search. ECC's 50-task benchmark: ~2x fewer tokens than grep-based workflows at similar or better quality.",
+      "source": {
+        "type": "marketplace",
+        "marketplace": "mixedbread-ai/mgrep",
+        "plugin": "mgrep",
+        "repo": "https://github.com/mixedbread-ai/mgrep"
+      },
+      "license": "see repo",
+      "conflicts": [],
+      "install": [
+        "claude plugin marketplace add https://github.com/mixedbread-ai/mgrep",
+        "claude plugin install mgrep@Mixedbread-Grep"
+      ],
+      "config": {
+        "note": "Workflows and agents should prefer mgrep over grep/rg; the marketplace is allowlisted in managed settings."
+      },
+      "cautions": "Third-party marketplace - pinned in managed settings allowlist; DRI re-vets on updates. Verify license terms before org-wide rollout."
+    },
+    {
+      "id": "ecc-library",
+      "status": "approved",
+      "slot": "library",
+      "kind": "cherry-pick-source",
+      "defaultInstall": false,
+      "summary": "Everything Claude Code (affaan-m/ECC, MIT): 278 skills, 67 agents, rules for most stacks (Django/Spring/Laravel/Go/Rust/TS...), reviewers and build resolvers per language. The org's approved source for per-stack conventions and specialist agents - individual files copied, adapted, and pinned via find-org-skills proposals.",
+      "source": {
+        "type": "github",
+        "repo": "https://github.com/affaan-m/ECC"
+      },
+      "license": "MIT",
+      "conflicts": [],
+      "install": [],
+      "config": {
+        "rule": "NEVER install the ecc plugin bundle (/plugin install ecc@ecc is banned - context bloat + large auto-executing surface). Cherry-pick single files, strip hooks/auto-update/npx-launches, pin the source commit, keep MIT attribution."
+      },
+      "cautions": "Third-party audit flagged the full bundle's auto-executing surface; a malware clone circulated (arabicapp/everything-claude-code) - only ever pull from the pinned official repo."
+    },
+    {
+      "id": "serena",
+      "status": "approved",
+      "slot": "editing-precision",
+      "kind": "mcp",
+      "defaultInstall": false,
+      "summary": "LSP-backed semantic retrieval plus symbolic editing (replace a function body, insert respecting scope) across 40+ languages. Complements codegraph: graph for discovery, LSP for surgical edits.",
+      "source": {
+        "type": "github",
+        "repo": "https://github.com/oraios/serena"
+      },
+      "license": "MIT",
+      "conflicts": [],
+      "install": [
+        "Follow the repo README; pin the release the DRI vetted."
+      ],
+      "config": {
+        "note": "Heavier runtime (spawns language servers), larger MCP tool surface - check /context cost after enabling."
+      },
+      "cautions": "Enable only where symbol-level editing is a real bottleneck; consider native LSP plugins first."
+    },
+    {
+      "id": "native-auto-memory",
+      "status": "approved",
+      "slot": "memory",
+      "kind": "native",
+      "defaultInstall": false,
+      "summary": "Claude Code built-in per-project memory (MEMORY.md index, on by default since v2.1.59). The fallback memory occupant when claude-mem is skipped (locked-down machines, regulated data).",
+      "source": {
+        "type": "native"
+      },
+      "conflicts": ["claude-mem"],
+      "install": [],
+      "config": {},
+      "cautions": ""
+    }
+  ],
+  "proposalProcess": "New entries arrive as PRs with status 'proposed' (see the find-org-skills skill for required fields). The DRI reviews within 2 working days: license, maintenance signals, executed surface (hooks/MCP/scripts), context cost, slot conflicts - then flips to 'approved' or closes with a reason. AgentShield CI scans every catalog change."
+}

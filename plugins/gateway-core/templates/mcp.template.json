@@ -1,0 +1,9 @@
+{
+  "$comment": "Template for a repo's committed .mcp.json - only when a selected catalog entry is an MCP server. Each developer approves project MCP servers once on first use.",
+  "mcpServers": {
+    "codegraph": {
+      "command": "codegraph",
+      "args": ["serve"]
+    }
+  }
+}

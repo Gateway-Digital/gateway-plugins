@@ -1,0 +1,27 @@
+{
+  "$comment": "Template for a repo's committed .claude/settings.json. org-init fills the placeholders: the repo's REAL lint/test/build commands go in allow. Stack conventions arrive as cherry-picked skills via find-org-skills, not extra plugins.",
+  "extraKnownMarketplaces": {
+    "gateway-tools": {
+      "source": {
+        "source": "github",
+        "repo": "Gateway-Digital/gateway-claude-plugins"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "gateway-core@gateway-tools": true
+  },
+  "permissions": {
+    "allow": [
+      "Bash(<LINT_COMMAND>)",
+      "Bash(<TEST_COMMAND>)",
+      "Bash(<BUILD_COMMAND>)"
+    ],
+    "deny": [
+      "Read(.env)",
+      "Read(.env.*)",
+      "Read(**/*.pem)",
+      "Read(**/credentials*)"
+    ]
+  }
+}
