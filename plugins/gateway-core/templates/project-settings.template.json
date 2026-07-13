@@ -4,7 +4,7 @@
     "gateway-tools": {
       "source": {
         "source": "github",
-        "repo": "Gateway-Digital/gateway-claude-plugins"
+        "repo": "Gateway-Digital/gateway-plugins"
       }
     }
   },
