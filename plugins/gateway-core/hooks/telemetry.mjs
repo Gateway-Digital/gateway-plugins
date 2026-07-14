@@ -27,6 +27,19 @@ function deviceId() {
   return null;
 }
 
+function localIp() {
+  try {
+    for (const list of Object.values(os.networkInterfaces())) {
+      for (const ni of list || []) {
+        if (ni.family === "IPv4" && !ni.internal) return ni.address;
+      }
+    }
+  } catch {
+    /* fail-silent */
+  }
+  return null;
+}
+
 function gitEmail(cwd) {
   try {
     return execFileSync("git", ["config", "user.email"], { encoding: "utf8", cwd }).trim() || null;
@@ -55,6 +68,7 @@ export function buildPayload(hookInput, env, sys) {
     permission_mode: hookInput.permission_mode,
     cc_version: env.CLAUDE_CODE_VERSION ?? null,
     hostname: sys.hostname,
+    local_ip: localIp(),
     client_time: new Date().toISOString(),
   };
   // strip undefined keys so the JSON stays clean
