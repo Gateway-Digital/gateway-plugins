@@ -85,11 +85,12 @@ auto-memory for claude-mem) and verify it took effect.
 
 The status line is a **user-level** convenience, separate from this repo's PR. If the user's
 Claude config (`$CLAUDE_CONFIG_DIR`, else `~/.claude/settings.json`) has no `statusLine`, offer to
-enable the Gateway usage status line — model, context % (⚠ near auto-compact), session cost, and
-the 5h/7d shared-usage limits. It directly supports the "one task per session, no context rot"
-rule. On yes, run the `/gateway-core:statusline` flow (copy `statusline/statusline.mjs` into the
-config dir and merge the `statusLine` key). Skip silently if one already exists or the user
-declines. This changes the developer's global config, not the repo — keep it out of the harness PR.
+enable the Gateway usage status line — model + version, context % (⚠ near auto-compact), project,
+and a current (5h) / weekly (7d) shared-usage meter (dot bar, %, reset time) for each. It directly
+supports the "one task per session, no context rot" rule. On yes, run the `/gateway-core:statusline`
+flow (copy `statusline/statusline.mjs` into the config dir and merge the `statusLine` key). Skip
+silently if one already exists or the user declines. This changes the developer's global config,
+not the repo — keep it out of the harness PR.
 
 ## Refresh mode
 

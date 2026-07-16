@@ -15,9 +15,15 @@ repo). Do exactly these steps, nothing else:
 4. Merge — do NOT overwrite — this into `<config-dir>/settings.json`, preserving all existing keys:
    `"statusLine": { "type": "command", "command": "node \"<absolute-script-path>\"" }`
    If a `statusLine` already exists, show it and ask before replacing.
-5. Confirm to the user: show a sample (`[Opus] 8% ctx · $0.01 · 5h 24% · 7d 41%`, with a ⚠ near
-   auto-compact), say it appears on the next interaction/restart, and that deleting the
-   `statusLine` key removes it.
+5. Confirm to the user: show a sample —
+   ```
+   Opus 4.8 | ctx 8% | <project>
+   current ●●○○○○○○○○ 24% ↻ 3hr 2min
+   weekly  ●●●●●●●○○○ 73% ↻ Sun 10:00pm
+   ```
+   (⚠ appears next to ctx% near auto-compact; either meter line is omitted when Claude Code
+   doesn't report that limit). Say it appears on the next interaction/restart, and that deleting
+   the `statusLine` key removes it.
 
 This is a user-level convenience; the central Grafana dashboard remains the source of truth for
 org usage. $ARGUMENTS

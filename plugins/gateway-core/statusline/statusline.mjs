@@ -1,5 +1,7 @@
 #!/usr/bin/env node
-// Gateway status line: model · context% (auto-compact warning) · session $ · shared-usage limits.
+// Gateway status line: model+version · context% (auto-compact warning) · project, then a
+// current (5h) / weekly (7d) shared-usage meter — dot bar, %, reset time — mirroring the org
+// dashboard's limits view (no $ cost: Team is per-seat, not per-token, see HANDOFF §15.6).
 // Also (if GATEWAY_TELEMETRY_URL/TOKEN are set) reports the per-user 5h/7d rate-limit % to the
 // ingest — throttled to once / 5 min, fire-and-forget, never blocks the status line output.
 import os from "node:os";
@@ -7,17 +9,84 @@ import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 
-export function render(j) {
-  const model = j.model?.display_name ?? "?";
+const GREEN = "\x1b[32m";
+const YELLOW = "\x1b[33m";
+const RED = "\x1b[31m";
+const RESET = "\x1b[0m";
+
+function levelColor(pct) {
+  if (pct >= 90) return RED;
+  if (pct >= 70) return YELLOW;
+  return GREEN;
+}
+
+function dotBar(pct) {
+  const filled = Math.max(0, Math.min(10, Math.floor(pct / 10)));
+  return "●".repeat(filled) + "○".repeat(10 - filled);
+}
+
+// display_name drops the version Claude Code still carries in model.id (e.g.
+// "claude-opus-4-8" -> "4.8"); haiku ids also carry a trailing release-date segment
+// ("-20251001") that isn't part of the version and must be stripped.
+function modelVersion(id) {
+  if (!id) return "";
+  const twoPart = id.match(/-(\d+)-(\d+)(?:-\d{8})?$/);
+  if (twoPart) return `${twoPart[1]}.${twoPart[2]}`;
+  const onePart = id.match(/-(\d+)$/);
+  return onePart ? onePart[1] : "";
+}
+
+function relativeCountdown(resetsAtSec, now = Date.now()) {
+  if (!resetsAtSec) return null;
+  const totalMin = Math.round((resetsAtSec * 1000 - now) / 60000);
+  if (totalMin <= 0) return "now";
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  if (h > 0 && m > 0) return `${h}hr ${m}min`;
+  return h > 0 ? `${h}hr` : `${m}min`;
+}
+
+function absoluteReset(resetsAtSec) {
+  if (!resetsAtSec) return null;
+  const d = new Date(resetsAtSec * 1000);
+  const weekday = d.toLocaleDateString(undefined, { weekday: "short" });
+  const hour24 = d.getHours();
+  const minutes = String(d.getMinutes()).padStart(2, "0");
+  const hour12 = hour24 % 12 || 12;
+  return `${weekday} ${hour12}:${minutes}${hour24 >= 12 ? "pm" : "am"}`;
+}
+
+export function render(j, now = Date.now()) {
+  const modelName = j.model?.display_name ?? "?";
+  const version = modelVersion(j.model?.id);
   const ctx = Math.round(j.context_window?.used_percentage ?? 0);
-  const cost = (j.cost?.total_cost_usd ?? 0).toFixed(2);
-  const r5 = j.rate_limits?.five_hour?.used_percentage;
-  const r7 = j.rate_limits?.seven_day?.used_percentage;
   const warn = ctx >= 80 ? "⚠ " : "";
-  let s = `[${model}] ${warn}${ctx}% ctx · $${cost}`;
-  if (r5 != null) s += ` · 5h ${Math.round(r5)}%`;
-  if (r7 != null) s += ` · 7d ${Math.round(r7)}%`;
-  return s;
+  const project = j.workspace?.repo?.name || path.basename(j.workspace?.current_dir || j.cwd || "");
+
+  const lines = [
+    `${version ? `${modelName} ${version}` : modelName} | ctx ${levelColor(ctx)}${warn}${ctx}%${RESET}` +
+      (project ? ` | ${project}` : ""),
+  ];
+
+  const r5 = j.rate_limits?.five_hour;
+  if (r5?.used_percentage != null) {
+    const pct = Math.round(r5.used_percentage);
+    const reset = relativeCountdown(r5.resets_at, now);
+    lines.push(
+      `current ${levelColor(pct)}${dotBar(pct)} ${pct}%${RESET}` + (reset ? ` ↻ ${reset}` : ""),
+    );
+  }
+
+  const r7 = j.rate_limits?.seven_day;
+  if (r7?.used_percentage != null) {
+    const pct = Math.round(r7.used_percentage);
+    const reset = absoluteReset(r7.resets_at);
+    lines.push(
+      `weekly  ${levelColor(pct)}${dotBar(pct)} ${pct}%${RESET}` + (reset ? ` ↻ ${reset}` : ""),
+    );
+  }
+
+  return lines.join("\n");
 }
 
 function configDir() {
